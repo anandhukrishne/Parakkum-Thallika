@@ -1,0 +1,21 @@
+/* Custom CSS for Drone UI */
+/* Tailwind handles most styling, but we can add specific custom CSS here if needed */
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* You can extend custom scrollbars or complex keyframe animations here */
+@keyframes neon-pulse {
+    0%, 100% {
+        text-shadow: 0 0 5px #0f0, 0 0 10px #0f0;
+    }
+    50% {
+        text-shadow: 0 0 2px #0f0, 0 0 5px #0f0;
+    }
+}
+
+.neon-green {
+    color: #0f0;
+    animation: neon-pulse 2s infinite;
+}

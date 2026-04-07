@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drone Command Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-900 text-white h-screen flex items-center justify-center font-sans tracking-wide">
+    <main role="application" aria-label="Drone Remote Control Interface" class="bg-gray-800 rounded-[2.5rem] shadow-2xl p-6 w-[400px] h-[800px] max-w-full flex flex-col gap-6 relative border-4 border-gray-700 shadow-[0_0_50px_rgba(0,0,0,0.8)_inset,0_20px_50px_rgba(0,0,0,0.5)]">
+        
+        <header class="flex justify-between items-center text-gray-400 text-sm px-2" aria-label="Status Bar">
+            <div class="flex items-center gap-2" aria-live="polite">
+                <i class="fa-solid fa-signal text-blue-400" aria-hidden="true"></i>
+                <span id="connection-status">Connecting...</span>
+            </div>
+            <div class="flex items-center gap-2" aria-live="polite">
+                <span id="battery-status">0%</span>
+                <i class="fa-solid fa-battery-full text-green-400" aria-hidden="true" id="battery-icon"></i>
+            </div>
+        </header>
+
+        <section class="bg-black rounded-2xl h-64 relative overflow-hidden border-2 border-gray-600 flex items-center justify-center" aria-label="Live Video Feed and Telemetry">
+            <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1579820010410-c10411aaaa88?q=80&w=800&auto=format&fit=crop')] bg-cover bg-center" id="video-feed" style="opacity: 0.1; filter: grayscale(100%); transition: all 1s;"></div>
+            
+            <div id="system-alert" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/80 text-white text-xs font-bold px-3 py-1 rounded hidden z-20 transition-opacity whitespace-nowrap" aria-live="assertive"></div>
+            
+            <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-10" aria-hidden="true">
+                <div class="w-16 h-16 border border-white opacity-30 relative">
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-1 bg-red-500 rounded-full"></div>
+                </div>
+                <div class="absolute w-full h-[1px] bg-white opacity-20"></div>
+                <div class="absolute h-full w-[1px] bg-white opacity-20"></div>
+            </div>
+
+            <div id="rec-indicator" class="absolute top-3 left-4 flex items-center gap-2 hidden z-10" aria-hidden="true">
+                <div class="w-3 h-3 bg-red-600 rounded-full animate-ping"></div>
+                <div class="w-3 h-3 bg-red-600 rounded-full absolute"></div>
+                <span class="text-red-500 font-bold text-xs tracking-widest drop-shadow-[0_0_5px_rgba(255,0,0,0.8)]">REC</span>
+            </div>
+
+            <div class="absolute bottom-3 right-4 text-right flex flex-col gap-1 items-end z-10" aria-live="polite">
+                <div class="text-[0.65rem] text-[#0f0] font-mono tracking-wider drop-shadow-[0_0_3px_#0f0]" aria-label="Altitude">ALT: <span id="alt-val" class="font-bold text-base">0m</span></div>
+                <div class="text-[0.65rem] text-[#0f0] font-mono tracking-wider drop-shadow-[0_0_3px_#0f0]" aria-label="Speed">SPD: <span id="spd-val" class="font-bold text-base">0km/h</span></div>
+                <div class="text-[0.65rem] text-[#0f0] font-mono tracking-wider drop-shadow-[0_0_3px_#0f0]" aria-label="Gimbal Angle">GMB: <span id="gimbal-val" class="font-bold text-base">0°</span></div>
+            </div>
+        </section>
+
+        <section class="grid grid-cols-2 gap-4 mt-2" aria-label="Main Controls">
+            <button id="engine-btn" onclick="toggleEngine()" aria-label="Toggle Engine" aria-pressed="false" class="bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 py-4 rounded-xl text-sm font-semibold tracking-wide transition-all border border-gray-600 flex flex-col items-center gap-2 group shadow-inner">
+                <div id="engine-icon-bg" class="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center transition-colors">
+                    <i id="engine-icon" class="fa-solid fa-power-off text-red-500 font-bold text-lg transition-colors"></i>
+                </div>
+                <span id="engine-text">Power Off</span>
+            </button>
+            <button id="map-btn" onclick="sendCommand('TOGGLE_MAP')" aria-label="Toggle Map" class="bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 py-4 rounded-xl text-sm font-semibold tracking-wide transition-all border border-gray-600 flex flex-col items-center gap-2 shadow-inner">
+                <i class="fa-solid fa-map-location-dot text-blue-400 text-xl transition-transform" id="map-icon"></i>
+                <span>Map</span>
+            </button>
+            <button id="radar-btn" onclick="sendCommand('TOGGLE_RADAR')" aria-label="Toggle Radar" class="bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 py-4 rounded-xl text-sm font-semibold tracking-wide transition-all border border-gray-600 flex flex-col items-center gap-2 shadow-inner">
+                <i class="fa-solid fa-satellite-dish text-purple-400 text-xl transition-transform" id="radar-icon"></i>
+                <span>Radar</span>
+            </button>
+            <button id="photo-btn" onclick="takePhoto()" aria-label="Take Photo" class="bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 py-4 rounded-xl text-sm font-semibold tracking-wide transition-all border border-gray-600 flex flex-col items-center gap-2 shadow-inner active:scale-95">
+                <i class="fa-solid fa-camera text-yellow-400 text-xl"></i>
+                <span>Photo</span>
+            </button>
+            <button id="video-btn" onclick="sendCommand('TOGGLE_VIDEO')" aria-label="Record Video" class="bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 py-4 rounded-xl text-sm font-semibold tracking-wide transition-all border border-gray-600 flex flex-col items-center gap-2 shadow-inner">
+                <i class="fa-solid fa-video text-pink-400 text-xl transition-colors" id="video-icon"></i>
+                <span>Video</span>
+            </button>
+            <button id="rth-btn" onclick="sendCommand('TOGGLE_RTH')" aria-label="Return to Home" class="bg-gray-700 hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 py-4 rounded-xl text-sm font-semibold tracking-wide transition-all border border-gray-600 flex flex-col items-center gap-2 shadow-inner group active:scale-95">
+                <i class="fa-solid fa-house-return text-orange-400 text-xl group-hover:scale-110 transition-transform cursor-pointer"></i>
+                <span>RTH</span>
+            </button>
+        </section>
+
+        <section class="flex justify-between items-stretch mt-auto bg-gray-900 rounded-2xl p-4 border border-gray-700 shadow-inner h-36" aria-label="Flight Controls">
+            <div class="flex flex-col justify-between items-center bg-gray-800 rounded-full w-14 py-2 border border-black shadow-[inset_0_5px_10px_rgba(0,0,0,0.5)] relative">
+                <button aria-label="Increase Altitude" class="w-10 h-10 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400 hover:bg-gray-600 flex items-center justify-center active:scale-95 transition-all text-gray-400 hover:text-white" onclick="sendCommand('ALTITUDE_UP')">
+                    <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
+                </button>
+                <div class="text-[0.6rem] text-gray-500 font-bold uppercase tracking-widest absolute top-1/2 -translate-y-1/2 rotate-90 w-24 text-center pointer-events-none" aria-hidden="true">Altitude</div>
+                <button aria-label="Decrease Altitude" class="w-10 h-10 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400 hover:bg-gray-600 flex items-center justify-center active:scale-95 transition-all text-gray-400 hover:text-white" onclick="sendCommand('ALTITUDE_DOWN')">
+                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                </button>
+            </div>
+
+            <div class="flex items-center justify-center">
+                <button onclick="sendCommand('TOGGLE_HOVER')" aria-label="Hover Lock Toggle" id="hover-lock" class="w-20 h-20 rounded-full bg-gradient-to-b from-gray-600 to-gray-800 border-4 border-gray-900 shadow-[0_5px_15px_rgba(0,0,0,0.5),inset_0_2px_5px_rgba(255,255,255,0.1)] focus:outline-none focus:ring-4 focus:ring-cyan-500 flex flex-col items-center justify-center gap-1 active:shadow-[inset_0_5px_10px_rgba(0,0,0,0.8)] active:scale-95 transition-all group">
+                    <i class="fa-solid fa-lock text-gray-400 group-hover:text-cyan-400 transition-colors" aria-hidden="true" id="hover-icon"></i>
+                    <span class="text-[0.65rem] font-bold text-gray-400 uppercase tracking-wider group-hover:text-cyan-400 transition-colors" id="hover-text">Hover</span>
+                </button>
+            </div>
+
+            <div class="flex flex-col justify-between items-center bg-gray-800 rounded-full w-14 py-2 border border-black shadow-[inset_0_5px_10px_rgba(0,0,0,0.5)] relative">
+                <button aria-label="Pitch Gimbal Up" class="w-10 h-10 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400 hover:bg-gray-600 flex items-center justify-center active:scale-95 transition-all text-gray-400 hover:text-white" onclick="sendCommand('GIMBAL_UP')">
+                    <i class="fa-solid fa-caret-up text-lg" aria-hidden="true"></i>
+                </button>
+                <div class="text-[0.6rem] text-gray-500 font-bold uppercase tracking-widest absolute top-1/2 -translate-y-1/2 -rotate-90 w-24 text-center pointer-events-none" aria-hidden="true">Gimbal</div>
+                <button aria-label="Pitch Gimbal Down" class="w-10 h-10 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400 hover:bg-gray-600 flex items-center justify-center active:scale-95 transition-all text-gray-400 hover:text-white" onclick="sendCommand('GIMBAL_DOWN')">
+                    <i class="fa-solid fa-caret-down text-lg" aria-hidden="true"></i>
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        let serverOnline = true;
+        let lastEngineState = false;
+
+        function showAlert(message, duration = 2000) {
+            const alertBox = document.getElementById('system-alert');
+            alertBox.textContent = message;
+            alertBox.classList.remove('hidden');
+            setTimeout(() => {
+                alertBox.classList.add('hidden');
+            }, duration);
+        }
+
+        setTimeout(() => {
+            document.getElementById('connection-status').textContent = 'Link Established (Local Core)';
+            document.getElementById('connection-status').classList.replace('text-gray-400', 'text-blue-400');
+        }, 1000);
+
+        function sendCommand(commandBody) {
+            if (!serverOnline && commandBody !== 'ENGINE_TOGGLE') {
+                 showAlert('System Offline');
+                 return;
+            }
+            fetch('/api/command', {
+                method: 'POST',
+                body: commandBody
+            }).then(() => pollServer());
+        }
+
+        function toggleEngine() {
+            if(lastEngineState) {
+                showAlert("SHUTTING DOWN SYSTEM...");
+                document.getElementById('video-feed').style.opacity = '0.1';
+                document.getElementById('video-feed').style.filter = 'grayscale(100%)';
+                setTimeout(() => {
+                    document.body.innerHTML = "<h1 class='text-center mt-20 text-3xl font-bold text-red-500'>DRONE SYSTEM OFFLINE.</h1><p class='text-center text-gray-400'>You may now close this window.</p>";
+                    serverOnline = false;
+                    fetch('/api/command', { method: 'POST', body: "SHUTDOWN_PROGRAM" });
+                }, 1500);
+            } else {
+                sendCommand('ENGINE_TOGGLE');
+            }
+        }
+
+        function takePhoto() {
+            if(!lastEngineState) return showAlert("Power is off");
+            const flash = document.createElement('div');
+            flash.className = 'absolute inset-0 bg-white opacity-0 transition-opacity duration-75 z-50 pointer-events-none';
+            document.querySelector('.bg-black.rounded-2xl').appendChild(flash);
+            setTimeout(() => {
+                flash.classList.replace('opacity-0', 'opacity-80');
+                showAlert("Photo Captured", 1000);
+                setTimeout(() => {
+                    flash.classList.replace('opacity-80', 'opacity-0');
+                    setTimeout(() => flash.remove(), 200);
+                }, 100);
+            }, 10);
+        }
+
+        function pollServer() {
+            if (!serverOnline) return;
+
+            fetch('/api/status')
+                .then(res => res.json())
+                .then(state => {
+                    document.getElementById('alt-val').textContent = state.altitude.toFixed(0) + 'm';
+                    document.getElementById('spd-val').textContent = state.speed.toFixed(0) + 'km/h';
+                    document.getElementById('gimbal-val').textContent = state.gimbal.toFixed(0) + '°';
+                    document.getElementById('battery-status').textContent = state.battery.toFixed(0) + '%';
+                    
+                    if(state.battery < 20) {
+                         document.getElementById('battery-icon').classList.replace('text-green-400', 'text-red-500');
+                    }
+
+                    lastEngineState = state.engineOn;
+                    const engineIconBg = document.getElementById('engine-icon-bg');
+                    const engineIcon = document.getElementById('engine-icon');
+                    const engineText = document.getElementById('engine-text');
+                    const videofeed = document.getElementById('video-feed');
+                    
+                    if (state.engineOn) {
+                        engineIconBg.classList.replace('bg-red-500/20', 'bg-green-500/20');
+                        engineIcon.classList.replace('text-red-500', 'text-green-500');
+                        engineText.textContent = "Power Off";
+                        videofeed.style.opacity = '0.5';
+                        videofeed.style.filter = 'grayscale(0%)';
+                    } else {
+                        engineIconBg.classList.replace('bg-green-500/20', 'bg-red-500/20');
+                        engineIcon.classList.replace('text-green-500', 'text-red-500');
+                        engineText.textContent = "Power On";
+                        videofeed.style.opacity = '0.1';
+                        videofeed.style.filter = 'grayscale(100%)';
+                    }
+
+                    const recIndicator = document.getElementById('rec-indicator');
+                    const videoIcon = document.getElementById('video-icon');
+                    if (state.recording) {
+                        recIndicator.classList.remove('hidden');
+                        videoIcon.classList.replace('text-pink-400', 'text-red-500');
+                        videoIcon.classList.add('animate-pulse');
+                    } else {
+                        recIndicator.classList.add('hidden');
+                        videoIcon.classList.replace('text-red-500', 'text-pink-400');
+                        videoIcon.classList.remove('animate-pulse');
+                    }
+
+                    const mapBtn = document.getElementById('map-btn');
+                    const mapIcon = document.getElementById('map-icon');
+                    if(state.mapActive) {
+                        mapIcon.classList.replace('text-blue-400', 'text-white');
+                        mapBtn.classList.add('bg-blue-600', 'border-blue-500');
+                    } else {
+                        mapIcon.classList.replace('text-white', 'text-blue-400');
+                        mapBtn.classList.remove('bg-blue-600', 'border-blue-500');
+                    }
+
+                    const radarBtn = document.getElementById('radar-btn');
+                    const radarIcon = document.getElementById('radar-icon');
+                    if(state.radarActive) {
+                        radarIcon.classList.add('animate-spin');
+                        radarIcon.classList.replace('text-purple-400', 'text-white');
+                        radarBtn.classList.add('bg-purple-600', 'border-purple-500');
+                    } else {
+                        radarIcon.classList.remove('animate-spin');
+                        radarIcon.classList.replace('text-white', 'text-purple-400');
+                        radarBtn.classList.remove('bg-purple-600', 'border-purple-500');
+                    }
+
+                    const hoverBtn = document.getElementById('hover-lock');
+                    const hoverIcon = document.getElementById('hover-icon');
+                    const hoverText = document.getElementById('hover-text');
+                    if (state.hoverLock) {
+                        hoverBtn.classList.add('from-cyan-600', 'to-cyan-900', 'border-cyan-500');
+                        hoverIcon.classList.replace('text-gray-400', 'text-white');
+                        hoverText.classList.replace('text-gray-400', 'text-white');
+                    } else {
+                        hoverBtn.classList.remove('from-cyan-600', 'to-cyan-900', 'border-cyan-500');
+                        hoverIcon.classList.replace('text-white', 'text-gray-400');
+                        hoverText.classList.replace('text-white', 'text-gray-400');
+                    }
+
+                    const rthBtn = document.getElementById('rth-btn');
+                    if(state.rthMode) {
+                        rthBtn.classList.add('bg-orange-600', 'border-orange-500');
+                        rthBtn.querySelector('i').classList.replace('text-orange-400', 'text-white');
+                        rthBtn.querySelector('i').classList.add('animate-bounce');
+                        showAlert("RETURNING TO HOME - AUTO DESCENDING");
+                    } else {
+                        rthBtn.classList.remove('bg-orange-600', 'border-orange-500');
+                        rthBtn.querySelector('i').classList.replace('text-white', 'text-orange-400');
+                        rthBtn.querySelector('i').classList.remove('animate-bounce');
+                    }
+                })
+                .catch(err => console.log("Waiting for server..."));
+        }
+
+        setInterval(pollServer, 500);
+    </script>
+</body>
+</html>
